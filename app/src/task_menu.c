@@ -58,7 +58,7 @@
 #define DEL_MEN_XX_MIN				0ul
 #define DEL_MEN_XX_MED				50ul
 #define DEL_MEN_XX_MAX				500ul
-#define DEL_MEN_SAVE                100ul
+#define DEL_MEN_SAVE                3ul
 
 /********************** internal data declaration ****************************/
 task_menu_dta_t task_menu_dta =
@@ -84,7 +84,7 @@ char motor = 0;
 char aux_speed = 0;
 char aux_spin = LEFT;
 char aux_power = ON;
-
+uint32_t timer = DEL_MEN_SAVE;
 /********************** external data declaration ****************************/
 uint32_t g_task_menu_cnt;
 volatile uint32_t g_task_menu_tick_cnt;
@@ -127,9 +127,9 @@ void task_menu_init(void *parameters)
 	displayInit( DISPLAY_CONNECTION_GPIO_4BITS );
 
     displayCharPositionWrite(0, 0);
-	displayStringWrite("Motor 1: ON 0 L");
+	displayStringWrite("Motor 1: OFF 0 L");
 	displayCharPositionWrite(0, 1);
-	displayStringWrite("Motor 2: ON 0 L");
+	displayStringWrite("Motor 2: OFF 0 L");
 
 	g_task_menu_tick_cnt = G_TASK_MEN_TICK_CNT_INI;
 }
@@ -411,17 +411,17 @@ void task_menu_update(void *parameters)
 				case ST_MEN_03_POWER_ON:
 					if(!p_task_menu_dta->flag) break;
 
-					if ((EV_MEN_ENT_ACTIVE == p_task_menu_dta->event) && motor == ID_MOTOR_1)
+					if (EV_MEN_ENT_ACTIVE == p_task_menu_dta->event)
 					{
 						p_task_menu_dta->flag = false;
 						p_task_menu_dta->state = ST_MEN_VARIABLES_SAVED;
-						p_task_menu_dta->tick = DEL_MEN_SAVE;
+						timer = DEL_MEN_SAVE;
 						if(motor == ID_MOTOR_1) {
 							motor_1.Power = ON;
 						}
 						else motor_2.Power = ON;
 						displayCharPositionWrite(0, 0);
-						displayStringWrite("VARIABLES SAVED!");
+						displayStringWrite("VARIABLES SAVED ");
 
 
 					}
@@ -446,13 +446,13 @@ void task_menu_update(void *parameters)
 					{
 						p_task_menu_dta->flag = false;
 						p_task_menu_dta->state = ST_MEN_VARIABLES_SAVED;
-						p_task_menu_dta->tick = DEL_MEN_SAVE;
+						timer = DEL_MEN_SAVE;
 						if(motor == ID_MOTOR_1) {
 							motor_1.Power = OFF;
 						}
 						else motor_2.Power = OFF;
 						displayCharPositionWrite(0, 0);
-						displayStringWrite("VARIABLES SAVED!");
+						displayStringWrite("VARIABLES SAVED ");
 
 					}
 					else if(EV_MEN_NEX_ACTIVE == p_task_menu_dta->event) {
@@ -476,18 +476,19 @@ void task_menu_update(void *parameters)
 					{
 						p_task_menu_dta->flag = false;
 						p_task_menu_dta->state = ST_MEN_VARIABLES_SAVED;
-						p_task_menu_dta->tick = DEL_MEN_SAVE;
+						timer =  DEL_MEN_SAVE;
 						if(motor == ID_MOTOR_1) {
 							motor_1.Speed = aux_speed;
 						}
 						else motor_2.Speed = aux_speed;
+						aux_speed = 0;
 						displayCharPositionWrite(0, 0);
-						displayStringWrite("VARIABLES SAVED!");
+						displayStringWrite("VARIABLES SAVED ");
 					}
 					else if(EV_MEN_NEX_ACTIVE == p_task_menu_dta->event) {
 						p_task_menu_dta->flag = false;
 						p_task_menu_dta->state = ST_MEN_03_SPEED;
-						if(aux_speed > 9) aux_speed = 0;
+						if(aux_speed >= 9) aux_speed = 0;
 						else aux_speed++;
 						sprintf(menu_str,"       %d        ",aux_speed);
 						displayCharPositionWrite(0, 0);
@@ -497,6 +498,7 @@ void task_menu_update(void *parameters)
 					else if(EV_MEN_ESC_ACTIVE == p_task_menu_dta->event) {
 						p_task_menu_dta->flag = false;
 						p_task_menu_dta->state = ST_MEN_02_SPEED;
+						aux_speed = 0;
 						displayCharPositionWrite(0, 0);
 						displayStringWrite("      SPEED     ");
 					}
@@ -509,13 +511,13 @@ void task_menu_update(void *parameters)
 					{
 						p_task_menu_dta->flag = false;
 						p_task_menu_dta->state = ST_MEN_VARIABLES_SAVED;
-						p_task_menu_dta->tick = DEL_MEN_SAVE;
+						timer = DEL_MEN_SAVE;
 						if(motor == ID_MOTOR_1) {
 							motor_1.Spin = LEFT;
 						}
 						else motor_2.Spin = LEFT;
 						displayCharPositionWrite(0, 0);
-						displayStringWrite("VARIABLES SAVED!");
+						displayStringWrite("VARIABLES SAVED ");
 					}
 					else if(EV_MEN_NEX_ACTIVE == p_task_menu_dta->event) {
 						p_task_menu_dta->flag = false;
@@ -538,13 +540,13 @@ void task_menu_update(void *parameters)
 					{
 						p_task_menu_dta->flag = false;
 						p_task_menu_dta->state = ST_MEN_VARIABLES_SAVED;
-						p_task_menu_dta->tick = DEL_MEN_SAVE;
+						timer = DEL_MEN_SAVE;
 						if(motor == ID_MOTOR_1) {
 							motor_1.Spin = RIGHT;
 						}
 						else motor_2.Spin = RIGHT;
 						displayCharPositionWrite(0, 0);
-						displayStringWrite("VARIABLES SAVED!");
+						displayStringWrite("VARIABLES SAVED ");
 					}
 					else if(EV_MEN_NEX_ACTIVE == p_task_menu_dta->event) {
 						p_task_menu_dta->state = ST_MEN_03_SPIN_LEFT;
@@ -560,11 +562,12 @@ void task_menu_update(void *parameters)
 					break;
 
 				case ST_MEN_VARIABLES_SAVED:
-					if(p_task_menu_dta->tick > 0){
-						p_task_menu_dta->tick--;
-						int tick = p_task_menu_dta->tick;
+					if(timer > 0){
+						//p_task_menu_dta->flag = true;
+						timer--;
+						//int tick = p_task_menu_dta->tick;
 					}
-					if (p_task_menu_dta->tick == 0) {
+					if (timer == 0) {
 						p_task_menu_dta->flag = false;
 						p_task_menu_dta->state = ST_MEN_MAIN;
 						task_display_main();
